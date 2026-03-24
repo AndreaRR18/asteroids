@@ -6,6 +6,7 @@ import constants
 from logger import log_event, log_state
 from player import Player
 from shot import Shot
+from score import ScoreDisplay, ScorePopup
 
 def initialize_game():
     """Initialize pygame and create the game window."""
@@ -20,14 +21,16 @@ def setup_sprite_groups():
     drawable = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
+    score_popups = pygame.sprite.Group()
     
     # Set up container relationships
     Player.containers = (updatable, drawable)
     Asteroid.containers = (asteroids, updatable, drawable)
     AsteroidField.containers = (updatable)
     Shot.containers = (shots, drawable, updatable)
+    ScorePopup.containers = (score_popups, updatable, drawable)
     
-    return updatable, drawable, asteroids, shots
+    return updatable, drawable, asteroids, shots, score_popups
 
 def create_game_objects(updatable):
     """Create initial game objects (player and asteroid field)."""
@@ -46,7 +49,7 @@ def update_game_state(updatable, dt):
     """Update all game objects based on delta time."""
     updatable.update(dt)
 
-def handle_collisions(player, asteroids, shots):
+def handle_collisions(player, asteroids, shots, score_display, score_popups):
     """Detect and handle collisions between game objects."""
     for asteroid in asteroids:
         # Check player-asteroid collisions
@@ -61,12 +64,17 @@ def handle_collisions(player, asteroids, shots):
                 log_event("asteroid_split")
                 asteroid.split()
                 shot.kill()
+                # Update score and create popup
+                score_display.update_score(10)
+                ScorePopup(asteroid.position.x, asteroid.position.y, 10)
 
-def render_game(screen, drawable, fill):
+def render_game(screen, drawable, fill, score_display):
     """Render all game objects to the screen."""
     screen.fill(fill)
     for drawable_obj in drawable:
         drawable_obj.draw(screen)
+    # Draw score display
+    score_display.draw(screen)
     pygame.display.flip()
 
 def main():
@@ -76,10 +84,14 @@ def main():
     fill = (0, 0, 0)
     
     # Set up sprite groups
-    updatable, drawable, asteroids, shots = setup_sprite_groups()
+    updatable, drawable, asteroids, shots, score_popups = setup_sprite_groups()
     
     # Create game objects
     player = create_game_objects(updatable)
+    
+    # Create score display
+    score_display = ScoreDisplay()
+    drawable.add(score_display)
     
     # Initialize clock
     clock = pygame.time.Clock()
@@ -100,10 +112,10 @@ def main():
         update_game_state(updatable, dt)
         
         # Handle collisions
-        handle_collisions(player, asteroids, shots)
+        handle_collisions(player, asteroids, shots, score_display, score_popups)
         
         # Render the game
-        render_game(screen, drawable, fill)
+        render_game(screen, drawable, fill, score_display)
 
 if __name__ == "__main__":
     main()
